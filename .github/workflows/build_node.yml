@@ -1,0 +1,36 @@
+name: Build node app
+
+on:
+  workflow_call:
+    inputs:
+      node_version:
+        required: false
+        default: 19
+        type: number
+      environment:
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-node@v3
+      with:
+        node-version: ${{ inputs.node_version }}
+        cache: npm
+    - run: |
+        cat <<EOF >.env
+        REACT_APP_TEST_VAR = "Gundi"
+        REACT_APP_BASE_URL_LOCAL = "${{ vars.BASE_URL }}"
+        EOF
+    - run: npm ci
+    - run: CI=false npm run build
+    - uses: actions/upload-artifact@v3
+      with:
+        name: build-artifact
+        path: |
+          build

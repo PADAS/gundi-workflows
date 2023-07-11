@@ -1,0 +1,47 @@
+name: Destroy a GCS development environment
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      bucket_name:
+        required: true
+        type: string
+
+jobs:
+  destroy_bucket:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+    - uses: 'google-github-actions/auth@v1'
+      with:
+        workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+        service_account: ${{ vars.SERVICE_ACCOUNT }}
+    - uses: 'google-github-actions/setup-gcloud@v1'
+    - name: Check if bucket exists
+      id: bucket-check
+      run: |
+        echo "bucket_status=$(gsutil ls gs://${{ inputs.bucket_name }} > /dev/null 2>&1 ; echo $?)" >> $GITHUB_OUTPUT
+    - name: Destroy bucket
+      if: steps.bucket-check.outputs.bucket_status == 0
+      run: |
+        gcloud compute url-maps remove-path-matcher gundi-portal-lb \
+        --path-matcher-name=${{ inputs.bucket_name }}
+
+        gcloud compute backend-buckets delete ${{ inputs.bucket_name }} --quiet
+
+        gcloud storage rm --recursive gs://${{ inputs.bucket_name }}
+    - uses: 'google-github-actions/get-gke-credentials@v1'
+      with:
+        cluster_name: 'sintegrate-5bbf9d1f'
+        location: 'us-central1'
+    - name: Destroy k8s resources
+      run: |
+        kubectl delete service ${{ github.head_ref || github.ref_name }} -n gundi-portal
+        kubectl delete ingress ${{ github.head_ref || github.ref_name }} -n gundi-portal

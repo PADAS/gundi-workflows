@@ -1,0 +1,70 @@
+name: Create a GCS development environment
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      bucket_name:
+        required: true
+        type: string
+      subdomain:
+        required: true
+        type: string
+      http_domain:
+        required: true
+        type: string
+      https_domain:
+        required: true
+        type: string
+
+jobs:
+  createbucket:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: 'google-github-actions/auth@v1'
+      with:
+        workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+        service_account: ${{ vars.SERVICE_ACCOUNT }}
+    - uses: 'google-github-actions/setup-gcloud@v1'
+    - uses: 'google-github-actions/get-gke-credentials@v1'
+      with:
+        cluster_name: 'sintegrate-5bbf9d1f'
+        location: 'us-central1'
+    - name: Check if bucket exists
+      id: bucket-check
+      run: |
+        echo "bucket_status=$(gsutil ls gs://${{ inputs.bucket_name }} > /dev/null 2>&1 ; echo $?)" >> $GITHUB_OUTPUT
+    - name: Create bucket and add to LB
+      if: steps.bucket-check.outputs.bucket_status == 1
+      run: |
+        gsutil mb gs://${{ inputs.bucket_name }}
+        gcloud storage buckets add-iam-policy-binding gs://${{ inputs.bucket_name }} --member=allUsers --role=roles/storage.objectViewer
+        gcloud storage buckets update gs://${{ inputs.bucket_name }} --web-main-page-suffix=index.html --web-error-page=index.html
+
+        gcloud compute backend-buckets create ${{ inputs.bucket_name }} \
+        --gcs-bucket-name=${{ inputs.bucket_name }} \
+        --cache-mode=USE_ORIGIN_HEADERS \
+        --enable-cdn
+
+        gcloud compute url-maps add-path-matcher gundi-portal-lb \
+        --path-matcher-name=${{ inputs.bucket_name }} \
+        --default-backend-bucket=${{ inputs.bucket_name }} \
+        --new-hosts='${{ github.head_ref || github.ref_name }}.tst.gundiservice.org'
+    - name: Create k8s resources
+      if: steps.bucket-check.outputs.bucket_status == 1
+      run: |
+        envsubst < ./.github/workflows/templates/ingress.yml > k8s.yml
+        cat k8s.yml
+        kubectl apply -f k8s.yml
+      env:
+        HTTP_DOMAIN: ${{ inputs.http_domain }}
+        HTTPS_DOMAIN: ${{ inputs.https_domain }}
+        SUBDOMAIN: ${{ inputs.subdomain }}
