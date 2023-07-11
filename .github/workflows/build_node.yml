@@ -23,6 +23,7 @@ jobs:
         node-version: ${{ inputs.node_version }}
         cache: npm
     - run: |
+        rm -rf build
         cat <<EOF >.env
         REACT_APP_TEST_VAR = "Gundi"
         REACT_APP_BASE_URL_LOCAL = "${{ vars.BASE_URL }}"
@@ -31,6 +32,6 @@ jobs:
     - run: CI=false npm run build
     - uses: actions/upload-artifact@v3
       with:
-        name: build-artifact
+        name: build-artifact-${{ inputs.environment }}
         path: |
           build
