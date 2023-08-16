@@ -1,0 +1,24 @@
+name: Zip files
+
+on:
+  workflow_call:
+    inputs:
+      input_files:
+        required: true
+        type: string
+      output_file:
+        required: true
+        type: string
+
+jobs:
+  zip:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Zip files
+      run: |
+        zip -r "${{ inputs.output_file }}.zip" ${{ inputs.input_files }}
+    - uses: actions/upload-artifact@v3
+      with:
+        name: build-artifact
+        path: ${{ inputs.output_file }}.zip
