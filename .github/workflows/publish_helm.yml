@@ -39,7 +39,7 @@ jobs:
       with:
           version: 'v3.13.1'
     - run: |
-        gcloud auth configure-docker ${{ inputs.registry }}}
+        gcloud auth configure-docker ${{ inputs.registry }}
         helm package ${{ inputs.chart_name }}
         helm push ${{ inputs.chart_name }}-* oci://${{ inputs.registry }}/${{ inputs.repository }}
 
