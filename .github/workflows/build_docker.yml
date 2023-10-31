@@ -30,6 +30,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: GCP Auth
+      id: auth
       uses: 'google-github-actions/auth@v1'
       with:
         token_format: 'access_token'
