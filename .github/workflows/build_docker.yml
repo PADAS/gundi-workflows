@@ -18,6 +18,11 @@ on:
       no-cache:
         type: boolean
         default: false
+      artifact-download:
+        type: boolean
+        default: false
+      artifact-name:
+        type: string
 
 jobs:
   build:
@@ -29,6 +34,10 @@ jobs:
     
     steps:
     - uses: actions/checkout@v3
+    - uses: actions/download-artifact@v3
+      if: ${{ inputs.artifact-download }}
+      with:
+        name: ${{ inputs.artifact-name }}
     - name: GCP Auth
       id: auth
       uses: 'google-github-actions/auth@v1'
