@@ -20,7 +20,7 @@ on:
         default: '0.54.8'
 
 jobs:
-  plan:
+  terragrunt:
     permissions:
         contents: 'read'
         id-token: 'write'

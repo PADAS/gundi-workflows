@@ -1,0 +1,40 @@
+name: 'Update HCL'
+
+on:
+  workflow_call:
+    inputs:
+      git_repository:
+        required: true
+        type: string
+      file_location:
+        required: true
+        type: string
+      new_value:
+        required: true
+        type: string
+      key_name:
+        required: true
+        type: string
+
+
+jobs:
+  update_terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+            repository: ${{ inputs.git_repository }}
+            ref: main
+            ssh-key: ${{ secrets.INTEGRATIONS_DEPLOY_KEY }}
+
+      - name: Replace input in Terraform file
+        run: |
+            sed -i 's;${{ inputs.key_name }} = .*;${{ inputs.key_name }} = \"${{ inputs.new_value }}\";' ${{ inputs.file_location }}
+
+      - name: Commit changes
+        run: |
+            git config --global user.name "Integrations Automation"
+            git add .
+            git commit -m "Updated ${{ inputs.key_name }} in HCL file"
+            git push
