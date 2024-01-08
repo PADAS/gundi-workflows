@@ -15,6 +15,9 @@ on:
       key_name:
         required: true
         type: string
+    secrets:
+      INTEGRATIONS_DEPLOY_KEY:
+        required: true
 
 
 jobs:
