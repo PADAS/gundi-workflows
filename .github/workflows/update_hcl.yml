@@ -40,5 +40,5 @@ jobs:
             git config --global user.name "Integrations Automation"
             git config --global user.email "devops@earthranger.com"
             git add .
-            git commit -m "Updated ${{ inputs.key_name }} in HCL file"
+            git diff-index --quiet HEAD || git commit -m "Updated ${{ inputs.key_name }} in HCL file"
             git push
