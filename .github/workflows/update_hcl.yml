@@ -15,9 +15,10 @@ on:
       key_name:
         required: true
         type: string
+    secrets:
       ssh-key:
         required: true
-        type: string
+
 
 jobs:
   update_terraform:
@@ -28,7 +29,7 @@ jobs:
         with:
             repository: ${{ inputs.git_repository }}
             ref: main
-            ssh-key: ${{ inputs.ssh-key }}
+            ssh-key: ${{ secrets.ssh-key }}
 
       - name: Replace input in Terraform file
         run: |
