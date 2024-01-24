@@ -3,8 +3,8 @@ name: Build the application
 on:
   workflow_call:
     inputs:
+      # Provide environment or workload_identity_provider and service account
       environment:
-        required: true
         type: string
       repository:
         required: true
