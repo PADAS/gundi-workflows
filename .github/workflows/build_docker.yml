@@ -23,6 +23,14 @@ on:
         default: false
       artifact-name:
         type: string
+      workload_identity_provider:
+        type: string
+      service_account:
+        type: string
+
+env:
+  WORKLOAD_IDENTITY_PROVIDER: ${{ inputs.workload_identity_provider || vars.WORKLOAD_IDENTITY_PROVIDER }}
+  SERVICE_ACCOUNT: ${{ inputs.service_account || vars.SERVICE_ACCOUNT }}
 
 jobs:
   build:
@@ -43,8 +51,8 @@ jobs:
       uses: 'google-github-actions/auth@v1'
       with:
         token_format: 'access_token'
-        workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
-        service_account: ${{ vars.SERVICE_ACCOUNT }}
+        workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+        service_account: ${{ env.SERVICE_ACCOUNT }}
     - name: Login to GAR
       uses: docker/login-action@v2
       with:
