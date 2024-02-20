@@ -65,9 +65,10 @@ jobs:
         --set image.tag=${{ inputs.tag }} \
         -f ./.github/workflows/values/${{ inputs.environment }}.yml
 
-    - name: Send custom JSON data to Slack workflow
+    - name: Slack notification
       id: slack
       uses: slackapi/slack-github-action@v1.25.0
+      if: always()
       with:
         # For posting a rich message using Block Kit
         payload: |
@@ -85,7 +86,7 @@ jobs:
                 "type": "section",
                 "text": {
                   "type": "mrkdwn",
-                  "text": "GitHub Action build result: ${{ job.status }} <${{ github.event.pull_request.html_url || github.event.head_commit.url }}|Check the changes>"
+                  "text": "Deploy result: *job.status* ${{ (contains(job.status, 'failure') &&  :failing-rocket:) || :rocket: }} ${{ job.fa }}\n Deployed by: ${{ github.actor }}\n <${{ github.event.pull_request.html_url || github.event.head_commit.url }}|Check the changes>"
                 }
               }
             ]
