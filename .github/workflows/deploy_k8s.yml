@@ -26,6 +26,9 @@ on:
         required: false
         type: string
         default: application
+    secrets:
+      slack_webhook_url:
+        required: true
 
 jobs:
   deploy:
@@ -61,3 +64,25 @@ jobs:
         --set image.repository=${{ inputs.repository }} \
         --set image.tag=${{ inputs.tag }} \
         -f ./.github/workflows/values/${{ inputs.environment }}.yml
+
+    - name: Send custom JSON data to Slack workflow
+      id: slack
+      uses: slackapi/slack-github-action@v1.25.0
+      with:
+        # For posting a rich message using Block Kit
+        payload: |
+          {
+            "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+                }
+              }
+            ]
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
