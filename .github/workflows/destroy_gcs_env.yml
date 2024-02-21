@@ -19,11 +19,11 @@ jobs:
     environment: ${{ inputs.environment }}
 
     steps:
-    - uses: 'google-github-actions/auth@v1'
+    - uses: 'google-github-actions/auth@v2'
       with:
         workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
         service_account: ${{ vars.SERVICE_ACCOUNT }}
-    - uses: 'google-github-actions/setup-gcloud@v1'
+    - uses: 'google-github-actions/setup-gcloud@v2'
     - name: Check if bucket exists
       id: bucket-check
       run: |
@@ -37,7 +37,7 @@ jobs:
         gcloud compute backend-buckets delete ${{ inputs.bucket_name }} --quiet
 
         gcloud storage rm --recursive gs://${{ inputs.bucket_name }}
-    - uses: 'google-github-actions/get-gke-credentials@v1'
+    - uses: 'google-github-actions/get-gke-credentials@v2'
       with:
         cluster_name: 'sintegrate-5bbf9d1f'
         location: 'us-central1'
