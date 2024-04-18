@@ -1,0 +1,43 @@
+name: Add tag to an existing image in GCR
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+      repository:
+        required: true
+        type: string
+      tag:
+        required: true
+        type: string
+      new_tag:
+        required: true
+        type: string
+
+env:
+  WORKLOAD_IDENTITY_PROVIDER: ${{ inputs.workload_identity_provider || vars.WORKLOAD_IDENTITY_PROVIDER }}
+  SERVICE_ACCOUNT: ${{ inputs.service_account || vars.SERVICE_ACCOUNT }}
+
+jobs:
+  build:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    
+    steps:
+    - name: GCP Auth
+      id: auth
+      uses: google-github-actions/auth@v2
+      with:
+        token_format: 'access_token'
+        workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+        service_account: ${{ env.SERVICE_ACCOUNT }}
+    - name: Setup gcloud
+      uses: google-github-actions/setup-gcloud@v2
+    - name: Add tag
+      run: |
+        gcloud container images add-tag ${{ inputs.repository }}:${{ inputs.tag }} ${{ inputs.repository }}:${{ inputs.new_tag }}
+    
