@@ -36,7 +36,7 @@ jobs:
         with:
           terraform_version: ${{ inputs.tf_version }}
       
-      - run: terraform init
+      - run: terraform -chdir=${{ inputs.working_dir }} init
       - name: 'run terraform'
         run: |
           terraform -chdir=${{ inputs.working_dir }} ${{ inputs.tf_command }}
