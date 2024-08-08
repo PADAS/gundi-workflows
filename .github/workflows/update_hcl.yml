@@ -37,7 +37,7 @@ jobs:
 
       - name: Replace input in Terraform file
         run: |
-            sed -i 's;${{ inputs.key_name }} = .*;${{ inputs.key_name }} = \"${{ inputs.new_value }}\";' ${{ inputs.file_location }}
+            sed -i 's;${{ inputs.key_name }} .*;${{ inputs.key_name }} = \"${{ inputs.new_value }}\";' ${{ inputs.file_location }}
 
       - name: Commit changes
         run: |
