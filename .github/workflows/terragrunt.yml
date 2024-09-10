@@ -1,4 +1,4 @@
-name: 'Dev - Terragrunt GitHub Actions'
+name: Terragrunt Action
 
 on:
   workflow_call:

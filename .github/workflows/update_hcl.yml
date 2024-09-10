@@ -1,4 +1,4 @@
-name: 'Update HCL'
+name: Update HCL
 
 on:
   workflow_call:

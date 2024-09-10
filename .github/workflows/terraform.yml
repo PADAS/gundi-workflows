@@ -1,4 +1,4 @@
-name: 'Terraform GitHub Actions'
+name: Terraform Action
 
 on:
   workflow_call:
