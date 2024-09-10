@@ -22,6 +22,9 @@ on:
         required: false
         type: string
         default: application
+      location:
+        type: string
+        default: us-central1
     secrets:
       slack_webhook_url:
         required: true
@@ -45,7 +48,8 @@ jobs:
     - uses: google-github-actions/get-gke-credentials@v2
       with:
         cluster_name: ${{ vars.GKE_CLUTER_NAME }}
-        location: 'us-central1'
+        project_id: ${{ vars.PROJECT_ID }}
+        location: ${{ inputs.location }}
     - run: |
         kubectl set image deployment/${{ inputs.deployment }} ${{ inputs.container }}=${{ inputs.repository }}:${{ inputs.tag }} -n ${{ inputs.namespace }}
 
