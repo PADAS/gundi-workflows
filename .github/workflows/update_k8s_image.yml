@@ -47,7 +47,7 @@ jobs:
         cluster_name: ${{ vars.GKE_CLUTER_NAME }}
         location: 'us-central1'
     - run: |
-        kubectl set image deployment/${{ inputs.deployment }} ${{ inputs.container }}=${{ inputs.repository }}:${{ inputs.tag }}
+        kubectl set image deployment/${{ inputs.deployment }} ${{ inputs.container }}=${{ inputs.repository }}:${{ inputs.tag }} -n ${{ inputs.namespace }}
 
     - name: Slack notification
       id: slack
