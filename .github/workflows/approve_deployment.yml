@@ -1,0 +1,56 @@
+name: Approve Deployment
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment name for approval (e.g., develop, staging, production)'
+        required: true
+        type: string
+      image_name:
+        description: 'Name of the image repository'
+        required: true
+        type: string
+      image_tag:
+        description: 'Tag of the image to be deployed'
+        required: true
+        type: string
+      target_tag:
+        description: 'The tag that will be applied after approval'
+        required: true
+        type: string
+      environment_url:
+        description: 'URL of the environment (optional)'
+        required: false
+        type: string
+        default: ''
+      deployment_notes:
+        description: 'Additional notes about the deployment'
+        required: false
+        type: string
+        default: 'The image will be retagged and Flux will automatically deploy it.'
+    
+jobs:
+  approve:
+    runs-on: ubuntu-latest
+    environment: 
+      name: ${{ inputs.environment }}
+      url: ${{ inputs.environment_url }}
+    steps:
+      - name: Summarize pending deployment
+        run: |
+          echo "## ${{ inputs.environment }} Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "📦 **Current Image**: ${{ inputs.image_name }}:${{ inputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "🏷️ **Target Tag**: ${{ inputs.target_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "🔄 **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "🧑‍💻 **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "⏱️ **Deployment approved at**: $(date)" >> $GITHUB_STEP_SUMMARY
+          
+          # Optional notes about the deployment
+          echo "### Deployment Notes" >> $GITHUB_STEP_SUMMARY
+          echo "${{ inputs.deployment_notes }}" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Approval successful
+        run: |
+          echo "Deployment to ${{ inputs.environment }} environment has been approved."
+          echo "After this step, the image will be retagged to ${{ inputs.target_tag }} and pushed."
