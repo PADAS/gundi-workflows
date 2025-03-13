@@ -1,0 +1,95 @@
+name: Rollback Deployment
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment to rollback (staging, production, production-me, production-us)'
+        required: true
+        type: string
+      image_name:
+        description: 'Name of the image repository'
+        required: true
+        type: string
+      previous_tag:
+        description: 'Previous stable image tag to rollback to'
+        required: true
+        type: string
+      environment_url:
+        description: 'URL of the environment (optional)'
+        required: false
+        type: string
+        default: ''
+      deployment_notes:
+        description: 'Additional notes about the rollback'
+        required: false
+        type: string
+        default: 'Rolling back to a previous stable version.'
+      tag_prefix:
+        description: 'Prefix for the rollback tag (e.g., stage, prod, prod-me, prod-us)'
+        required: true
+        type: string
+
+jobs:
+  approve-rollback:
+    runs-on: ubuntu-latest
+    environment: 
+      name: ${{ inputs.environment }}
+      url: ${{ inputs.environment_url }}
+    outputs:
+      rollback_tag: ${{ steps.generate-tag.outputs.rollback_tag }}
+    steps:
+      - name: Generate rollback tag
+        id: generate-tag
+        run: |
+          COMMIT_HASH=$(echo $RANDOM | md5sum | head -c 7)
+          ROLLBACK_TAG="${{ inputs.tag_prefix }}-${COMMIT_HASH}-rollback"
+          echo "rollback_tag=${ROLLBACK_TAG}" >> $GITHUB_OUTPUT
+      
+      - name: Summarize rollback
+        run: |
+          echo "## ${{ inputs.environment }} Rollback Summary" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **Rolling back to**: ${{ inputs.previous_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "📦 **Target Image**: ${{ inputs.image_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "🏷️ **New Rollback Tag**: ${{ steps.generate-tag.outputs.rollback_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "🧑‍💻 **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "⏱️ **Rollback approved at**: $(date)" >> $GITHUB_STEP_SUMMARY
+          
+          # Optional notes about the rollback
+          echo "### Rollback Notes" >> $GITHUB_STEP_SUMMARY
+          echo "${{ inputs.deployment_notes }}" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Approval successful
+        run: |
+          echo "Rollback to ${{ inputs.environment }} environment has been approved."
+          echo "After this step, the previous image tag will be retagged to ${{ steps.generate-tag.outputs.rollback_tag }} and pushed."
+
+  execute-rollback:
+    needs: approve-rollback
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - name: GCP Auth
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          token_format: 'access_token'
+          workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.SERVICE_ACCOUNT }}
+      - name: Login to GAR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ inputs.image_name }}
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
+          
+      - name: Execute rollback
+        run: |
+          docker pull ${{ inputs.image_name }}:${{ inputs.previous_tag }}
+          docker tag ${{ inputs.image_name }}:${{ inputs.previous_tag }} ${{ inputs.image_name }}:${{ needs.approve-rollback.outputs.rollback_tag }}
+          docker push ${{ inputs.image_name }}:${{ needs.approve-rollback.outputs.rollback_tag }}
+          
+          echo "✅ Successfully created rollback image with tag: ${{ needs.approve-rollback.outputs.rollback_tag }}"
+          echo "Flux will detect this new tag and automatically deploy it to ${{ inputs.environment }}."
