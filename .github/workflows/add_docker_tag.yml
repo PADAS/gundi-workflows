@@ -39,5 +39,15 @@ jobs:
       uses: google-github-actions/setup-gcloud@v2
     - name: Add tag
       run: |
+        echo "## ${{ inputs.environment }} Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "📦 **Current Image**: ${{ inputs.image_name }}:${{ inputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
+        echo "🏷️ **Target Tag**: ${{ inputs.target_tag }}" >> $GITHUB_STEP_SUMMARY
+        echo "🔄 **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "🧑‍💻 **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+        echo "⏱️ **Deployment approved at**: $(date)" >> $GITHUB_STEP_SUMMARY
+        
+        # Optional notes about the deployment
+        echo "### Deployment Notes" >> $GITHUB_STEP_SUMMARY
+        echo "${{ inputs.deployment_notes }}" >> $GITHUB_STEP_SUMMARY
         gcloud container images add-tag ${{ inputs.repository }}:${{ inputs.tag }} ${{ inputs.repository }}:${{ inputs.new_tag }}
     
