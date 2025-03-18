@@ -14,13 +14,15 @@ on:
       new_tag:
         required: true
         type: string
-
-env:
-  WORKLOAD_IDENTITY_PROVIDER: ${{ inputs.workload_identity_provider || vars.WORKLOAD_IDENTITY_PROVIDER }}
-  SERVICE_ACCOUNT: ${{ inputs.service_account || vars.SERVICE_ACCOUNT }}
+      workload_identity_provider:
+        type: string
+        required: false
+      service_account:
+        type: string
+        required: false
 
 jobs:
-  build:
+  add-tag:
     permissions:
       contents: 'read'
       id-token: 'write'
@@ -33,11 +35,21 @@ jobs:
       uses: google-github-actions/auth@v2
       with:
         token_format: 'access_token'
-        workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
-        service_account: ${{ env.SERVICE_ACCOUNT }}
+        workload_identity_provider: ${{ inputs.workload_identity_provider || vars.WORKLOAD_IDENTITY_PROVIDER }}
+        service_account: ${{ inputs.service_account || vars.SERVICE_ACCOUNT }}
+    
     - name: Setup gcloud
       uses: google-github-actions/setup-gcloud@v2
-    - name: Add tag
-      run: |
-        gcloud container images add-tag ${{ inputs.repository }}:${{ inputs.tag }} ${{ inputs.repository }}:${{ inputs.new_tag }}
     
+    - name: Add tag and generate deployment summary
+      run: |
+        # Generate deployment summary
+        echo "## ${{ inputs.environment }} Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "📦 **Current Image**: ${{ inputs.repository }}:${{ inputs.tag }}" >> $GITHUB_STEP_SUMMARY
+        echo "🏷️ **Target Tag**: ${{ inputs.new_tag }}" >> $GITHUB_STEP_SUMMARY
+        echo "🔄 **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "🧑‍💻 **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+        echo "⏱️ **Deployment approved at**: $(date)" >> $GITHUB_STEP_SUMMARY
+        
+        # Add the tag
+        gcloud container images add-tag ${{ inputs.repository }}:${{ inputs.tag }} ${{ inputs.repository }}:${{ inputs.new_tag }}
