@@ -29,6 +29,11 @@ on:
         type: string
       service_account:
         type: string
+      build-args:
+        type: string
+        description: "Docker build arguments in format KEY1=VALUE1,KEY2=VALUE2"
+        required: false
+
 
 env:
   WORKLOAD_IDENTITY_PROVIDER: ${{ inputs.workload_identity_provider || vars.WORKLOAD_IDENTITY_PROVIDER }}
@@ -76,3 +81,4 @@ jobs:
         no-cache: ${{ inputs.no-cache }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        build-args: ${{ inputs.build-args }}
