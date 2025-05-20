@@ -20,6 +20,10 @@ on:
       secret_key: 
         type: string
         default: "deployment_settings.source_code_path"
+    outputs:
+      file_name: 
+        description: "File name"
+        value: ${{ jobs.vars.outputs.file_name }}
 
 jobs:
   vars:
@@ -56,7 +60,7 @@ jobs:
   zip:
     if: ${{ inputs.deploy }}
     uses: ./.github/workflows/zip_files.yml
-    needs: [vars, test]
+    needs: [vars]
     with:
       input_files: "*"
       output_file: ${{ needs.vars.outputs.file_name }}
@@ -64,18 +68,7 @@ jobs:
   upload:
     if: ${{ inputs.deploy }}
     uses: ./.github/workflows/upload_to_gcs.yml
-    needs: [vars, zip, test]
+    needs: [vars, zip]
     with:
       environment: ${{ inputs.environment }}
       file_name: ${{ needs.vars.outputs.file_name }}
-
-  
-  update_secret: 
-    if: ${{ inputs.deploy }}
-    uses: ./.github/workflows/update_json_secret_key.yml
-    needs: [upload]
-    with: 
-      environment: ${{ inputs.environment }}
-      secret_name: ${{ inputs.secret_name }}
-      secret_key: ${{ inputs.secret_key }}
-      secret_value: ${{ needs.vars.outputs.file_name }}
