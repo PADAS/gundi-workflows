@@ -20,9 +20,6 @@ on:
       SECRET_KEY:
         type: string
         default: "deployment_settings.source_code_path"
-      TRACING_ENABLED:
-        type: string
-        default: ""
     outputs:
       file_name:
         description: "File name"
@@ -64,8 +61,6 @@ jobs:
         
       - name: Run unit tests
         run: pytest
-        # env:
-          # TRACING_ENABLED: ${{ secrets.TRACING_ENABLED }}
 
   zip:
     if: ${{ inputs.DEPLOY }}
