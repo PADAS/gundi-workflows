@@ -58,14 +58,14 @@ jobs:
 
   zip:
     if: ${{ inputs.deploy }}
-    uses: PADAS/gundi-workflows/.github/workflows/zip_files.yml@main
+    uses: ./.github/workflows/zip_files.yml
     needs: vars
     with:
       input_files: "*"
       output_file: ${{ needs.vars.outputs.file_name }}
 
   upload:
-    uses: PADAS/gundi-workflows/.github/workflows/upload_to_gcs.yml@main
+    uses: ./.github/workflows/upload_to_gcs.yml
     needs: [vars, zip, test]
     with:
       environment: ${{ inputs.environment }}
@@ -73,7 +73,7 @@ jobs:
 
   
   update_secret: 
-    uses: PADAS/gundi-workflows/.github/workflows/update_json_secret_key.yml@secret-update
+    uses: ./.github/workflows/update_json_secret_key.yml
     needs: [vars, upload]
     with: 
       environment: ${{ inputs.environment }}
