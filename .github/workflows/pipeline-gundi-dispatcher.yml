@@ -1,0 +1,82 @@
+name: Dispatcher Pipeline Zip
+on:
+  workflow_call:
+    inputs:
+      artifact_name: 
+        type: string
+        default: ""
+      run_tests:
+        type: boolean
+        default: false
+      deploy:
+        type: boolean
+        default: false
+      environment:
+        type: string
+        default: "dev"
+      requires_approval:
+        type: boolean
+        default: false
+      secret_name: 
+        type: string
+        default: ""      
+      secret_key: 
+        type: string
+        default: "deployment_settings.source_code_path"
+
+jobs:
+  vars:
+    runs-on: ubuntu-latest
+    outputs:
+      file_name: ${{ steps.vars.outputs.file_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: vars
+        run: |
+          echo "file_name=${{ inputs.artifact_name }}-src-${{ github.head_ref || github.ref_name }}-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+  test:
+    if: ${{ inputs.run_tests }}
+    runs-on: ubuntu-latest
+    needs: [vars]
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.8' 
+
+      - name: Install pip
+        run: python -m ensurepip --upgrade
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run unit tests
+        run: pytest
+
+  zip:
+    if: ${{ inputs.deploy }}
+    uses: PADAS/gundi-workflows/.github/workflows/zip_files.yml@main
+    needs: vars
+    with:
+      input_files: "*"
+      output_file: ${{ needs.vars.outputs.file_name }}
+
+  upload:
+    uses: PADAS/gundi-workflows/.github/workflows/upload_to_gcs.yml@main
+    needs: [vars, zip, test]
+    with:
+      environment: ${{ inputs.environment }}
+      file_name: ${{ needs.vars.outputs.file_name }}
+
+  
+  update_secret: 
+    uses: PADAS/gundi-workflows/.github/workflows/update_json_secret_key.yml@secret-update
+    needs: [vars, upload]
+    with: 
+      environment: ${{ inputs.environment }}
+      secret_name: ${{ inputs.secret_name }}
+      secret_key: ${{ inputs.secret_key }}
+      secret_value: ${{ needs.vars.outputs.file_name }}
