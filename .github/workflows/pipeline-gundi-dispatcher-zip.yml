@@ -38,6 +38,9 @@ jobs:
 
   test:
     if: ${{ inputs.RUN_TESTS }}
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     runs-on: ubuntu-latest
     needs: [vars]
     steps:
