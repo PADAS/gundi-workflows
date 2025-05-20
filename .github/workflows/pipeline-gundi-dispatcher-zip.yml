@@ -56,12 +56,13 @@ jobs:
   zip:
     if: ${{ inputs.deploy }}
     uses: ./.github/workflows/zip_files.yml
-    needs: vars
+    needs: [vars, test]
     with:
       input_files: "*"
       output_file: ${{ needs.vars.outputs.file_name }}
 
   upload:
+    if: ${{ inputs.deploy }}
     uses: ./.github/workflows/upload_to_gcs.yml
     needs: [vars, zip, test]
     with:
@@ -70,8 +71,9 @@ jobs:
 
   
   update_secret: 
+    if: ${{ inputs.deploy }}
     uses: ./.github/workflows/update_json_secret_key.yml
-    needs: [vars, upload]
+    needs: [upload]
     with: 
       environment: ${{ inputs.environment }}
       secret_name: ${{ inputs.secret_name }}
