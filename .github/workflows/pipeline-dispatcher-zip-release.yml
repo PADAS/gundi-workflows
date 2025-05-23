@@ -26,9 +26,9 @@ jobs:
       input_files: "*"
       output_file: ${{ needs.common.outputs.file_name }}
 
-  upload_artifact:
+  upload_artifact_stage:
     if: github.event_name != 'pull_request'
-    uses: PADAS/gundi-workflows/.github/workflows/upload_to_gcs.yml@main
+    uses: ./.github/workflows/upload_to_gcs.yml
     needs: [common, zip]
     with:
       environment: dev
@@ -36,16 +36,23 @@ jobs:
 
   update_secret_stage:
     uses: ./.github/workflows/update_json_secret_key.yml
-    needs: [common, upload_artifact]
+    needs: [common, upload_artifact_stage]
     with:
       environment: ${{ inputs.stage_environment }}
       secret_name: "${{ inputs.secret_name }}-${{ inputs.stage_environment }}"
       secret_key: "deployment_settings.source_code_path"
       secret_value: "${{ needs.common.outputs.file_name }}.zip"
 
+  upload_prod:
+    uses: ./.github/workflows/upload_to_gcs.yml
+    needs: [common, zip, upload_artifact_stage, update_secret_stage]
+    with:
+      environment: prod
+      file_name: ${{ needs.common.outputs.file_name }}
+
   update_secret_prod:
     uses: ./.github/workflows/update_json_secret_key.yml
-    needs: [common, update_secret_stage]
+    needs: [common, upload_prod]
     with:
       environment: ${{ inputs.prod_environment }}
       secret_name: "${{ inputs.secret_name }}-${{ inputs.prod_environment }}"

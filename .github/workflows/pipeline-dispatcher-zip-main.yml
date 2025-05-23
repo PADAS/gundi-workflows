@@ -16,7 +16,7 @@ jobs:
 
   zip:
     if: github.event_name != 'pull_request'
-    uses: PADAS/gundi-workflows/.github/workflows/zip_files.yml@main
+    uses: ./.github/workflows/zip_files.yml
     needs: [common]
     with:
       input_files: "*"
@@ -24,7 +24,7 @@ jobs:
 
   upload_artifact:
     if: github.event_name != 'pull_request'
-    uses: PADAS/gundi-workflows/.github/workflows/upload_to_gcs.yml@main
+    uses: ./.github/workflows/upload_to_gcs.yml
     needs: [common, zip]
     with:
       environment: dev
