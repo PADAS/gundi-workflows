@@ -6,6 +6,9 @@ on:
         required: false
         type: string
         default: dev
+      secret_name:
+        required: true
+        type: string
       stage_environment:
         required: false
         type: string
