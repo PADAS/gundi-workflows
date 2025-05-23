@@ -9,4 +9,4 @@ on:
 
 jobs:
   common:
-    uses: ./.github/workflows/_dispatcher_common.yml
+    uses: ./.github/workflows/_dispatcher_common_zip.yml
