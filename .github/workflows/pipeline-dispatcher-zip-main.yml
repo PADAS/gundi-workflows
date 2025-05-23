@@ -1,0 +1,40 @@
+name: Main Pipeline
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: false
+        type: string
+        default: dev
+      secret_name:
+        required: true
+        type: string
+
+jobs:
+  common:
+    uses: ./.github/workflows/_dispatcher_common_zip.yml
+
+  zip:
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/zip_files.yml
+    needs: [common]
+    with:
+      input_files: "*"
+      output_file: ${{ needs.common.outputs.file_name }}
+
+  upload_artifact:
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/upload_to_gcs.yml
+    needs: [common, zip]
+    with:
+      environment: dev
+      file_name: ${{ needs.common.outputs.file_name }}
+
+  update_secret_dev:
+    uses: ./.github/workflows/update_json_secret_key.yml
+    needs: [common, upload_artifact]
+    with:
+      environment: ${{ inputs.environment }}
+      secret_name: "${{ inputs.secret_name }}-${{ inputs.environment }}"
+      secret_key: "deployment_settings.source_code_path"
+      secret_value: "${{ needs.common.outputs.file_name }}.zip"
