@@ -2,10 +2,6 @@ name: Release Pipeline
 on:
   workflow_call:
     inputs:
-      environment:
-        required: false
-        type: string
-        default: dev
       secret_name:
         required: true
         type: string
@@ -42,8 +38,8 @@ jobs:
     uses: ./.github/workflows/update_json_secret_key.yml
     needs: [common, upload_artifact]
     with:
-      environment: ${{ inputs.environment }}
-      secret_name: "${{ inputs.stage_environment }}-${{ inputs.environment }}"
+      environment: ${{ inputs.stage_environment }}
+      secret_name: "${{ inputs.secret_name }}-${{ inputs.stage_environment }}"
       secret_key: "deployment_settings.source_code_path"
       secret_value: "${{ needs.common.outputs.file_name }}.zip"
 
@@ -51,7 +47,7 @@ jobs:
     uses: ./.github/workflows/update_json_secret_key.yml
     needs: [common, update_secret_stage]
     with:
-      environment: ${{ inputs.environment }}
-      secret_name: "${{ inputs.prod_environment }}-${{ inputs.environment }}"
+      environment: ${{ inputs.prod_environment }}
+      secret_name: "${{ inputs.secret_name }}-${{ inputs.prod_environment }}"
       secret_key: "deployment_settings.source_code_path"
       secret_value: "${{ needs.common.outputs.file_name }}.zip"
