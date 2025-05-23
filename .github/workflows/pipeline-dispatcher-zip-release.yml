@@ -1,0 +1,54 @@
+name: Release Pipeline
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: false
+        type: string
+        default: dev
+      stage_environment:
+        required: false
+        type: string
+        default: stage
+      prod_environment:
+        required: false
+        type: string
+        default: prod
+
+jobs:
+  common:
+    uses: ./.github/workflows/_dispatcher_common_zip.yml
+
+  zip:
+    if: github.event_name != 'pull_request'
+    uses: PADAS/gundi-workflows/.github/workflows/zip_files.yml@main
+    needs: [common]
+    with:
+      input_files: "*"
+      output_file: ${{ needs.common.outputs.file_name }}
+
+  upload_artifact:
+    if: github.event_name != 'pull_request'
+    uses: PADAS/gundi-workflows/.github/workflows/upload_to_gcs.yml@main
+    needs: [common, zip]
+    with:
+      environment: dev
+      file_name: ${{ needs.common.outputs.file_name }}
+
+  update_secret_stage:
+    uses: ./.github/workflows/update_json_secret_key.yml
+    needs: [common, upload_artifact]
+    with:
+      environment: ${{ inputs.environment }}
+      secret_name: "${{ inputs.stage_environment }}-${{ inputs.environment }}"
+      secret_key: "deployment_settings.source_code_path"
+      secret_value: "${{ needs.common.outputs.file_name }}.zip"
+
+  update_secret_prod:
+    uses: ./.github/workflows/update_json_secret_key.yml
+    needs: [common, update_secret_stage]
+    with:
+      environment: ${{ inputs.environment }}
+      secret_name: "${{ inputs.prod_environment }}-${{ inputs.environment }}"
+      secret_key: "deployment_settings.source_code_path"
+      secret_value: "${{ needs.common.outputs.file_name }}.zip"
