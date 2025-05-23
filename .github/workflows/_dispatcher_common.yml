@@ -49,7 +49,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
 
-      # - name: Run unit tests
-      #   run: pytest
-      #   env:
-      #     TRACING_ENABLED: ${{ vars.TRACING_ENABLED }}
+      - name: Run unit tests
+        run: pytest
+        env:
+          TRACING_ENABLED: ${{ vars.TRACING_ENABLED }}
