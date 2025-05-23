@@ -36,7 +36,7 @@ jobs:
     needs: [common, build]
     with:
       environment: ${{ inputs.stage_environment }}
-      secret_name: ${{ inputs.secret_name }}
+      secret_name: "${{ inputs.secret_name }}-${{ inputs.prod_environment }}"
       secret_key: "deployment_settings.docker_image_url"
       secret_value: "${{ needs.common.outputs.repository }}:${{ needs.common.outputs.tag }}"
 
@@ -45,6 +45,6 @@ jobs:
     needs: [common, build, update_secret_stage]
     with:
       environment: ${{ inputs.prod_environment }}
-      secret_name: ${{ inputs.secret_name }}
+      secret_name: "${{ inputs.secret_name }}-${{ inputs.prod_environment }}"
       secret_key: "deployment_settings.docker_image_url"
       secret_value: "${{ needs.common.outputs.repository }}:${{ needs.common.outputs.tag }}"
