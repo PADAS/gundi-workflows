@@ -1,0 +1,41 @@
+name: Main Pipeline
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: false
+        type: string
+        default: dev
+      secret_name:
+        required: true
+        type: string
+      dockerfile:
+        required: false
+        type: string
+        default: Dockerfile
+      branch_filter:
+        required: false
+        type: string
+        default: main
+
+jobs:
+  common:
+    uses: ./.github/workflows/_dispatcher_common.yml
+
+  build:
+    uses: ./.github/workflows/build_docker.yml
+    needs: [common]
+    with:
+      environment: ${{ inputs.environment }}
+      repository: ${{ needs.common.outputs.repository }}
+      tag: ${{ needs.common.outputs.tag }}
+      dockerfile: ${{ inputs.dockerfile }}
+
+  update_secret:
+    uses: ./.github/workflows/update_json_secret_key.yml
+    needs: [common, build]
+    with:
+      environment: ${{ inputs.environment }}
+      secret_name: ${{ inputs.secret_name }}
+      secret_key: "deployment_settings.docker_image_url"
+      secret_value: "${{ needs.common.outputs.repository }}:${{ needs.common.outputs.tag }}"

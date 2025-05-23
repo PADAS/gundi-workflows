@@ -1,0 +1,12 @@
+name: PR Pipeline
+on:
+  workflow_call:
+    inputs:
+      dockerfile:
+        required: false
+        type: string
+        default: Dockerfile
+
+jobs:
+  common:
+    uses: ./.github/workflows/_dispatcher_common.yml
