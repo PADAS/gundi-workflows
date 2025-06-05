@@ -47,7 +47,7 @@ jobs:
     uses: ./.github/workflows/upload_to_gcs.yml
     needs: [common, zip, upload_artifact_stage, update_secret_stage]
     with:
-      environment: ${{ inputs.stage_environment }}
+      environment: ${{ inputs.prod_environment }}
       file_name: ${{ needs.common.outputs.file_name }}
 
   update_secret_prod:
