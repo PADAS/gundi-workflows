@@ -41,5 +41,5 @@ jobs:
     - run: |
         gcloud auth configure-docker ${{ inputs.registry }}
         helm package ${{ inputs.chart_name }}
-        helm push ${{ inputs.chart_name }}-* oci://${{ inputs.registry }}/${{ inputs.repository }}
+        helm push ${{ inputs.chart_name }}-*.tgz oci://${{ inputs.registry }}/${{ inputs.repository }}
 
