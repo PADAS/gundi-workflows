@@ -47,5 +47,5 @@ jobs:
         echo "helm push ${{ inputs.chart_name }}-* oci://${{ inputs.registry }}/${{ inputs.repository }}"
         echo "=== DEBUG: Expanded files ==="
         echo ${{ inputs.chart_name }}-*
-        helm push ${{ inputs.chart_name }}-* oci://${{ inputs.registry }}/${{ inputs.repository }}
+        helm push ${{ inputs.chart_name }}-*.tgz oci://${{ inputs.registry }}/${{ inputs.repository }}
 
