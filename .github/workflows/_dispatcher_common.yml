@@ -53,3 +53,4 @@ jobs:
         run: pytest
         env:
           TRACING_ENABLED: ${{ vars.TRACING_ENABLED }}
+          GCP_ENVIRONMENT_ENABLED: ${{ vars.GCP_ENVIRONMENT_ENABLED }}
