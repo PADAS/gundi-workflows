@@ -2,6 +2,9 @@ name: PR Pipeline
 on:
   workflow_call:
     inputs:
+      app_name:
+        required: true
+        type: string
       dockerfile:
         required: false
         type: string
@@ -10,3 +13,5 @@ on:
 jobs:
   common:
     uses: ./.github/workflows/_dispatcher_common.yml
+    with: 
+      app_name: ${{ inputs.app_name }}

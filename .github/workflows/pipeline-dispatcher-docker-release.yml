@@ -2,6 +2,9 @@ name: Release Pipeline
 on:
   workflow_call:
     inputs:
+      app_name:
+        required: true
+        type: string
       secret_name:
         required: true
         type: string
@@ -21,6 +24,9 @@ on:
 jobs:
   common:
     uses: ./.github/workflows/_dispatcher_common.yml
+    with:
+      app_name: ${{ inputs.app_name }}
+      
 
   build:
     uses: ./.github/workflows/build_docker.yml
