@@ -2,6 +2,10 @@ name: Common Jobs
 
 on:
   workflow_call:
+    inputs:
+      app_name:
+        required: true
+        type: string
     outputs:
       tag:
         description: "The output file name"
@@ -21,7 +25,7 @@ jobs:
       - id: vars
         run: |
           echo "tag=${{ github.head_ref || github.ref_name }}-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-          echo "repository=us-central1-docker.pkg.dev/cdip-78ca/gundi-dispatchers/traptagger" >> $GITHUB_OUTPUT
+          echo "repository=us-central1-docker.pkg.dev/cdip-78ca/gundi-dispatchers/${{ inputs.app_name }}" >> $GITHUB_OUTPUT
 
   run_unit_tests:
     runs-on: ubuntu-latest
