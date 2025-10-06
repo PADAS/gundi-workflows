@@ -1,0 +1,67 @@
+name: Cleanup Stale PR Environments
+
+on:
+  workflow_call:
+    inputs:
+      days-before-stale:
+        description: 'Days before marking as stale'
+        type: number
+        default: 14
+      days-before-teardown:
+        description: 'Days before tearing down (after stale)'
+        type: number
+        default: 3
+      deploy-label:
+        description: 'Label that triggers environment'
+        type: string
+        default: 'deploy'
+      exempt-label:
+        description: 'Label to keep environment alive'
+        type: string
+        default: 'keep-alive'
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          days-before-stale: ${{ inputs.days-before-stale }}
+          days-before-close: -1
+          only-labels: ${{ inputs.deploy-label }}
+          stale-pr-label: 'stale-environment'
+          stale-pr-message: |
+            ⚠️ This PR environment has been inactive for ${{ inputs.days-before-stale }} days.
+            Environment will be torn down in ${{ inputs.days-before-teardown }} days.
+            Remove `stale-environment` label to keep it alive.
+          days-before-pr-close: -1
+          remove-stale-when-updated: true
+          exempt-pr-labels: ${{ inputs.exempt-label }}
+          operations-per-run: 100
+          
+      - name: Remove deploy label from stale PRs
+        run: |
+            TOTAL_DAYS=$(( ${{ inputs.days-before-stale }} + ${{ inputs.days-before-teardown }} ))
+            
+            gh pr list --label stale-environment --state open --json number,createdAt |
+            jq -r '.[] | "\(.number) \(.createdAt)"' |
+            while read pr created; do
+            NOW=$(date +%s)
+            CREATED=$(date -d "$created" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%SZ" "$created" +%s)
+            DAYS=$(( ($NOW - $CREATED) / 86400 ))
+            
+            if [ $DAYS -ge $TOTAL_DAYS ]; then
+                echo "Removing ${{ inputs.deploy-label }} label from PR #$pr (age: $DAYS days)"
+                gh pr edit $pr --remove-label ${{ inputs.deploy-label }}
+                gh pr comment $pr --body "🗑️ Environment torn down due to inactivity"
+            fi
+            done
+        env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
