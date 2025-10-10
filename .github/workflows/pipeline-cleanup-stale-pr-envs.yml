@@ -20,6 +20,7 @@ on:
         type: string
         default: 'keep-alive'
 
+
 jobs:
   cleanup:
     runs-on: ubuntu-latest
@@ -40,7 +41,10 @@ jobs:
           stale-pr-message: |
             ⚠️ This PR environment has been inactive for ${{ inputs.days-before-stale }} days.
             Environment will be torn down in ${{ inputs.days-before-teardown }} days.
-            Remove `stale-environment` label to keep it alive.
+            
+            **To keep the environment alive:**
+            - Remove the `stale-environment` label, OR
+            - Add the `${{ inputs.exempt-label }}` label for permanent exemption
           days-before-pr-close: -1
           remove-stale-when-updated: true
           exempt-pr-labels: ${{ inputs.exempt-label }}
