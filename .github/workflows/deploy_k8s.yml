@@ -51,7 +51,9 @@ jobs:
     - uses: google-github-actions/get-gke-credentials@v2
       with:
         cluster_name: ${{ vars.GKE_CLUTER_NAME }}
-        location: 'us-central1'
+        location: global
+        use_connect_gateway: 'true'
+        project_id: serca-tools
     - uses: azure/setup-helm@v3
       with:
           version: 'v3.12.0'
