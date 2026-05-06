@@ -48,12 +48,7 @@ jobs:
         workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
         service_account: ${{ vars.SERVICE_ACCOUNT }}
     - uses: google-github-actions/setup-gcloud@v2
-    - uses: google-github-actions/get-gke-credentials@v2
-      with:
-        cluster_name: ${{ vars.GKE_CLUTER_NAME }}
-        location: global
-        use_connect_gateway: 'true'
-        project_id: serca-tools
+    - run: gcloud container fleet memberships get-credentials ${{ vars.GKE_CLUTER_NAME }} --project=serca-tools
     - uses: azure/setup-helm@v3
       with:
           version: 'v3.12.0'

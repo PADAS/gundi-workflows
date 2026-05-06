@@ -42,12 +42,10 @@ jobs:
         token_format: 'access_token'
         workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
         service_account: ${{ vars.SERVICE_ACCOUNT }}
-    - uses: google-github-actions/get-gke-credentials@v2
+    - uses: google-github-actions/setup-gcloud@v2
       with:
-        cluster_name: ${{ vars.GKE_CLUTER_NAME }}
-        location: global
-        use_connect_gateway: 'true'
-        project_id: serca-tools
+        install_components: 'kubectl'
+    - run: gcloud container fleet memberships get-credentials ${{ vars.GKE_CLUTER_NAME }} --project=serca-tools
     - run: |
         kubectl set image deployment/${{ inputs.deployment }} ${{ inputs.container }}=${{ inputs.repository }}:${{ inputs.tag }} -n ${{ inputs.namespace }}
 
