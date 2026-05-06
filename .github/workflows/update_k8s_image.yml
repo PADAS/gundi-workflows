@@ -45,8 +45,9 @@ jobs:
     - uses: google-github-actions/get-gke-credentials@v2
       with:
         cluster_name: ${{ vars.GKE_CLUTER_NAME }}
-        project_id: ${{ vars.PROJECT_ID }}
-        location: ${{ vars.LOCATION }}
+        location: global
+        use_connect_gateway: 'true'
+        project_id: serca-tools
     - run: |
         kubectl set image deployment/${{ inputs.deployment }} ${{ inputs.container }}=${{ inputs.repository }}:${{ inputs.tag }} -n ${{ inputs.namespace }}
 
