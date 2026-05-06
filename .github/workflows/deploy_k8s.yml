@@ -48,6 +48,8 @@ jobs:
         workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
         service_account: ${{ vars.SERVICE_ACCOUNT }}
     - uses: google-github-actions/setup-gcloud@v2
+      with:
+        install_components: 'gke-gcloud-auth-plugin'
     - run: gcloud container fleet memberships get-credentials ${{ vars.GKE_CLUTER_NAME }} --project=serca-tools
     - uses: azure/setup-helm@v3
       with:
