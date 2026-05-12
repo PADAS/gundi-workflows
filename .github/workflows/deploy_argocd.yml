@@ -1,0 +1,182 @@
+name: Deploy via ArgoCD (image bump in serca-argocd-apps)
+
+# Reusable workflow that bumps the `image.repository` and `image.tag` for an
+# application in PADAS/serca-argocd-apps. ArgoCD reconciles the change on the
+# target cluster within ~3 min via its automated sync policy.
+#
+# Ported from PADAS/serca-pipelines/.github/workflows/_argocd-update-image.yml
+# (private) so it can be consumed by public source repos (cdip, cdip-api,
+# gundi-movebank-dispatcher). No GCP / cluster credentials are needed — the
+# only secret is an SSH deploy key with write access to serca-argocd-apps,
+# scoped per source repo.
+
+on:
+  workflow_call:
+    inputs:
+      app-name:
+        required: true
+        type: string
+        description: "Application name — chart and serca-argocd-apps subdirectory (e.g. admin-portal)."
+      image-repository:
+        required: true
+        type: string
+        description: "Full image registry path (e.g. us-central1-docker.pkg.dev/cdip-78ca/gundi/admin-portal)."
+      image-tag:
+        required: true
+        type: string
+        description: "New image tag to deploy (e.g. main-abc1234)."
+      environment:
+        required: true
+        type: string
+        description: "Environment slug used in the values file name, e.g. gundi-dev → values-gundi-dev.yaml."
+      app-subdir:
+        required: false
+        type: string
+        default: gundi
+        description: "Top-level directory in serca-argocd-apps (e.g. gundi, shared)."
+      argocd-apps-repo:
+        required: false
+        type: string
+        default: PADAS/serca-argocd-apps
+        description: "Repository containing the ArgoCD app values."
+    secrets:
+      ARGOCD_APPS_SSH_KEY:
+        required: true
+        description: "SSH deploy key (private) with write access to serca-argocd-apps. Each consumer repo should have its own unique key."
+      slack_webhook_url:
+        required: false
+        description: "Optional Slack webhook for deploy notifications."
+
+jobs:
+  update-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      changed: ${{ steps.update.outputs.changed }}
+      commit-sha: ${{ steps.update.outputs.commit_sha }}
+      commit-url: ${{ steps.update.outputs.commit_url }}
+      values-file: ${{ steps.update.outputs.values_file }}
+    steps:
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Setup SSH deploy key for serca-argocd-apps
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ARGOCD_APPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Update image tag in values file
+        id: update
+        env:
+          APP_NAME: ${{ inputs.app-name }}
+          APP_SUBDIR: ${{ inputs.app-subdir }}
+          IMAGE_REPO: ${{ inputs.image-repository }}
+          IMAGE_TAG: ${{ inputs.image-tag }}
+          ENVIRONMENT: ${{ inputs.environment }}
+          ARGOCD_APPS_REPO: ${{ inputs.argocd-apps-repo }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          clone_dir=$(mktemp -d)
+          echo "Cloning ${ARGOCD_APPS_REPO}..."
+          git clone --depth=1 "git@github.com:${ARGOCD_APPS_REPO}.git" "$clone_dir"
+          cd "$clone_dir"
+
+          values_file="${APP_SUBDIR:+${APP_SUBDIR}/}${APP_NAME}/values-${ENVIRONMENT}.yaml"
+          if [[ ! -f "$values_file" ]]; then
+            echo "::error::Values file not found: $values_file"
+            exit 1
+          fi
+
+          echo "Updating image in $values_file → ${IMAGE_REPO}:${IMAGE_TAG}"
+          IMAGE_REPO="$IMAGE_REPO" IMAGE_TAG="$IMAGE_TAG" \
+            yq -i '.image.repository = env(IMAGE_REPO) | .image.tag = env(IMAGE_TAG)' "$values_file"
+
+          if git diff --quiet "$values_file"; then
+            echo "No changes — image already matches"
+            {
+              echo "changed=false"
+              echo "commit_sha="
+              echo "commit_url="
+              echo "values_file=$values_file"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          commit_msg="chore(${APP_NAME}): bump image to ${IMAGE_TAG} on ${ENVIRONMENT}
+
+          Triggered by: ${GITHUB_ACTOR}
+          Run: ${GITHUB_RUN_URL}"
+
+          git add "$values_file"
+          git commit -m "$commit_msg"
+
+          # Retry with rebase on push contention from concurrent pipelines.
+          max_retries=5
+          attempt=1
+          while [ "$attempt" -le "$max_retries" ]; do
+            if git push 2>&1; then
+              break
+            fi
+            if [ "$attempt" -eq "$max_retries" ]; then
+              echo "::error::Failed to push after $max_retries attempts — too much contention on ${ARGOCD_APPS_REPO}"
+              exit 1
+            fi
+            wait_time=$(( (RANDOM % 4) + 2 ))
+            echo "::warning::Push failed (attempt $attempt/$max_retries) — rebasing and retrying in ${wait_time}s..."
+            sleep "$wait_time"
+            git fetch origin main
+            git rebase origin/main
+            attempt=$((attempt + 1))
+          done
+
+          commit_sha=$(git rev-parse HEAD)
+          echo "Successfully updated $values_file at ${commit_sha}"
+          {
+            echo "changed=true"
+            echo "commit_sha=${commit_sha}"
+            echo "commit_url=https://github.com/${ARGOCD_APPS_REPO}/commit/${commit_sha}"
+            echo "values_file=$values_file"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/id_ed25519
+
+      - name: Slack notification
+        if: always() && env.SLACK_WEBHOOK_URL != ''
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "ArgoCD bump ${{ github.event.repository.name }} → ${{ inputs.environment }}",
+                    "emoji": true
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "Result: *${{ job.status }}* ${{ (contains(job.status, 'success') && ':rocket:') || ':failing-rocket:' }}\nImage: `${{ inputs.image-tag }}`\nValues commit: ${{ steps.update.outputs.commit_url || 'no-op' }}\nTriggered by: ${{ github.actor }}\n<${{ github.event.pull_request.html_url || github.event.head_commit.url }}|Source change>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
