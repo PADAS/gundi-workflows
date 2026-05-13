@@ -45,7 +45,7 @@ jobs:
     - uses: google-github-actions/setup-gcloud@v2
       with:
         install_components: 'kubectl,gke-gcloud-auth-plugin'
-    - run: gcloud container fleet memberships get-credentials ${{ vars.GKE_CLUTER_NAME }} --project=serca-tools
+    - run: gcloud container clusters get-credentials ${{ vars.GKE_CLUTER_NAME }} --location=${{ vars.LOCATION }} --project=${{ vars.PROJECT_ID }}
     - run: |
         kubectl set image deployment/${{ inputs.deployment }} ${{ inputs.container }}=${{ inputs.repository }}:${{ inputs.tag }} -n ${{ inputs.namespace }}
 
