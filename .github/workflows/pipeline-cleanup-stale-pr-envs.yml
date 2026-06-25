@@ -64,6 +64,7 @@ jobs:
             if [ $DAYS -ge $TOTAL_DAYS ]; then
                 echo "Removing ${{ inputs.deploy-label }} label from PR #$pr (age: $DAYS days)"
                 gh pr edit $pr --remove-label ${{ inputs.deploy-label }}
+                gh pr edit $pr --remove-label stale-environment
                 gh pr comment $pr --body "🗑️ Environment torn down due to inactivity"
             fi
             done
