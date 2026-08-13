@@ -44,5 +44,20 @@ jobs:
             git config --global user.name "Integrations Automation"
             git config --global user.email "devops@earthranger.com"
             git add .
-            git diff-index --quiet HEAD || git commit -m "Updated ${{ inputs.key_name }} in HCL file"
-            git push
+            IMAGE_SHORT=$(echo "${{ inputs.new_value }}" | awk -F'/' '{print $NF}')
+            if git diff-index --quiet HEAD; then
+              echo "No changes to commit"
+              exit 0
+            fi
+            git commit -m "Updated ${{ inputs.key_name }} in HCL file (${{ inputs.environment }}: ${IMAGE_SHORT})"
+            # Another integration's build may push to the same repo between our
+            # checkout and push; rebase and retry instead of failing the deploy.
+            for attempt in 1 2 3; do
+              if git push; then
+                exit 0
+              fi
+              echo "Push attempt ${attempt} failed; rebasing onto latest and retrying..."
+              git pull --rebase
+            done
+            echo "Failed to push after 3 attempts" >&2
+            exit 1
