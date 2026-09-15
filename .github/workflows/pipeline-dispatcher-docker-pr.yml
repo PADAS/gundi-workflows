@@ -5,6 +5,11 @@ on:
       app_name:
         required: true
         type: string
+      python_version:
+        description: Python version used to install requirements and run pytest
+        type: string
+        required: false
+        default: '3.8'
       dockerfile:
         required: false
         type: string
@@ -13,5 +18,6 @@ on:
 jobs:
   common:
     uses: ./.github/workflows/_dispatcher_common.yml
-    with: 
+    with:
       app_name: ${{ inputs.app_name }}
+      python_version: ${{ inputs.python_version }}
