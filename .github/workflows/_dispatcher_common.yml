@@ -6,6 +6,11 @@ on:
       app_name:
         required: true
         type: string
+      python_version:
+        description: Python version used to install requirements and run pytest
+        type: string
+        required: false
+        default: '3.8'
     outputs:
       tag:
         description: "The output file name"
@@ -45,7 +50,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.8' 
+          python-version: ${{ inputs.python_version }}
 
       - name: Install pip
         run: python -m ensurepip --upgrade
