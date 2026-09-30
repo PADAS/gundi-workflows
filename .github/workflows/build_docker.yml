@@ -15,6 +15,10 @@ on:
       dockerfile:
         type: string
         default: docker/Dockerfile
+      context:
+        type: string
+        default: .
+        description: "Docker build context directory, relative to the repository root"
       no-cache:
         type: boolean
         default: false
@@ -96,7 +100,7 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         push: true
-        context: .
+        context: ${{ inputs.context }}
         file: ${{ inputs.dockerfile }}
         tags: "${{ inputs.repository }}:${{ inputs.tag }}"
         no-cache: ${{ inputs.no-cache }}
